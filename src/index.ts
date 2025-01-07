@@ -50,6 +50,20 @@ export interface NoticeOptions {
      */
     msgtype?: string;
   };
+  data?: {
+    /**
+     * url 评论文章地址
+     * text 评论原内容
+     * ip 评论人ip
+     * nick 评论人昵称
+     * mail 评论人邮箱
+     **/ 
+    url?: string;
+    ip?: string;
+    nick?: string;
+    mail?: string;
+    text?: string;
+  };
 }
 export interface CommonOptions {
   token: string;
@@ -469,6 +483,10 @@ async function noticeWecombot(options: CommonOptions) {
     },
   );
 
+  if (response.data.errcode !== 0) {
+    throw new Error(`调用企业微信群机器人通知失败：${response.data.errmsg}`);
+  }
+
   return response.data;
 }
 
@@ -527,6 +545,50 @@ async function noticeWxPusher(options: CommonOptions) {
   return response.data;
 }
 
+async function noticeWebhook(options: CommonOptions) {
+  checkParameters(options, ['token', 'content']);
+  const url = new URL(options.token);
+  const format = url.searchParams.get("format") && url.searchParams.get("format") === 'markdown' ? "markdown" : "text";
+  const token = url.searchParams.get("token") || url.searchParams.get("key") || '';
+  let title: string, content: string;
+
+  if (format === "text") {
+    title = getTxt(options.title);
+    content = getTxt(options.content);
+  } else {
+    title = options.title;
+    content = options.content;
+  }
+
+  const response = await axios.post(
+    url.href,
+    {
+      msgtype: format,
+      title: title ? title : '',
+      content: content,
+      url: options?.options?.data?.url || '',
+      raw: {
+        ip: options?.options?.data?.ip,
+        nick: options?.options?.data?.nick,
+        mail: options?.options?.data?.mail,
+        text: options?.options?.data?.text,
+      }
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json;charset=utf-8',
+        'X-API-Token': token,
+      },
+    }
+  );
+
+  if (response.status !== 200) {
+    throw new Error(`发送自定义 webhook 通知失败：${response.status}`);
+  }
+
+  return response.data;
+}
+
 async function notice(channel: ChannelType, options: CommonOptions) {
   try {
     let data: any;
@@ -549,6 +611,7 @@ async function notice(channel: ChannelType, options: CommonOptions) {
       wecombot: noticeWecombot,
       discord: noticeDiscord,
       wxpusher: noticeWxPusher,
+      webhook: noticeWebhook,
     }[channel.toLowerCase()];
     if (noticeFn) {
       data = await noticeFn(options);
@@ -584,4 +647,5 @@ export {
   noticeWecombot,
   noticeDiscord,
   noticeWxPusher,
+  noticeWebhook
 };

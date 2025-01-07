@@ -23,7 +23,8 @@
   },
   "homepage": "https://pushoo.js.org/",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && xcopy /Y dist\\* ..\\twikoo\\src\\server\\pushoo\\",
+    "build-mac": "tsc && cp -f dist/* ../twikoo/src/server/pushoo/",
     "lint": "eslint src/**",
     "test": "ts-node src/test.ts"
   },
@@ -35,7 +36,7 @@
   },
   "devDependencies": {
     "@types/marked": "^4.0.7",
-    "@types/node": "^17.0.45",
+    "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^5.38.0",
     "@typescript-eslint/parser": "5.38.0",
     "eslint": "8.10.0",
